@@ -1,6 +1,4 @@
 # MVP with returns constraint
-
-
 min_returns_weights <- function(returns, inv_cov, min_returns, mu_hat, rebal_period, p, rf){
   A <- cbind(rep(1, p), mu_hat-rf)
   b <- c(1, min_returns)
@@ -9,8 +7,6 @@ min_returns_weights <- function(returns, inv_cov, min_returns, mu_hat, rebal_per
   w_gmv_floor <- as.numeric(w_eq)
   return(w_gmv_floor)
 }
-
-
 
 mega_rol_pred_parallel_w_constr <- function(returns,
                                    initial_window,   

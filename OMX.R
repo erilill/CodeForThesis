@@ -3,6 +3,17 @@
 #                             Empirical Data                                   #
 ################################################################################
 library(readxl)
+library(parallel)
+library(PortfolioMoments)
+library(corpcor)
+library(POET)
+library(glasso)
+library(PerformanceAnalytics)
+library(xts)
+library(zoo)
+source("utils.R")
+source("mega_rol_pred.R")
+
 omx2020_2024 <- read_excel("C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/omx2020_2024.xlsx", 
                            col_types = c("date", "numeric", "numeric", 
                                          "numeric", "numeric", "numeric", 

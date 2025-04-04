@@ -245,41 +245,52 @@ adaptive_poet_rho <- function(R, M0 = 10,
   return(list(best_rho = best_rho, rho_1 = rho_1, min_Fnorm = min_val))
 }
 
-p over possible number of factors (R)
-for (mi in 1:max_m) {
-  residuals <- matrix(NA, nrow = iT, ncol = ip)
-  prev_F = NULL
-  for (r in 1:iT){
-    # Step 1: Perform PCA with R factors
-    pca_result <- try(local_pca(returns, r = r, bandwidth = bandwidth, 
-                                m = mi, kernel_func = epanechnikov_kernel, 
-                                prev_F))
-    if("try-error" %in% class(pca_result))
-    {
-      next
+
+determine_factors <- function(returns, max_m, bandwidth) {
+  iT <- nrow(returns)
+  ip <- ncol(returns)
+  
+  # Initialize storage
+  V <- numeric(max_m)
+  penalty <- numeric(max_m)
+  IC_values <- numeric(max_m)
+  
+  # Loop over possible number of factors (R)
+  for (mi in 1:max_m) {
+    residuals <- matrix(NA, nrow = iT, ncol = ip)
+    prev_F = NULL
+    for (r in 1:iT){
+      # Step 1: Perform PCA with R factors
+      pca_result <- try(local_pca(returns, r = r, bandwidth = bandwidth, 
+                                  m = mi, kernel_func = epanechnikov_kernel, 
+                                  prev_F))
+      if("try-error" %in% class(pca_result))
+      {
+        next
+      }
+      
+      
+      X_r <- matrix(0, nrow = iT, ncol = ip)
+      X_r <- sweep(returns, 1, sqrt(pca_result$w_r), `*`)
+      scaled_loadings <- sqrt(ip) * sweep(pca_result$loadings, 2, sqrt(colSums(pca_result$loadings^2)), "/")
+      Lambda_breve_R <- t((1/(iT*ip))*t(X_r)%*%X_r%*%scaled_loadings)
+      F_breve_R <- solve((Lambda_breve_R)%*%t(Lambda_breve_R))%*%(Lambda_breve_R)%*%returns[r,]
+      
+      # Step 2: Compute SSR (Sum of Squared Residuals)
+      residuals[r,] <- returns[r,] - t(F_breve_R) %*% (Lambda_breve_R)
+      
+      prev_F <- pca_result$F_hat_r
     }
-    
-    
-    X_r <- matrix(0, nrow = iT, ncol = ip)
-    X_r <- sweep(returns, 1, sqrt(pca_result$w_r), `*`)
-    scaled_loadings <- sqrt(ip) * sweep(pca_result$loadings, 2, sqrt(colSums(pca_result$loadings^2)), "/")
-    Lambda_breve_R <- t((1/(iT*ip))*t(X_r)%*%X_r%*%scaled_loadings)
-    F_breve_R <- solve((Lambda_breve_R)%*%t(Lambda_breve_R))%*%(Lambda_breve_R)%*%returns[r,]
-    
-    # Step 2: Compute SSR (Sum of Squared Residuals)
-    residuals[r,] <- returns[r,] - t(F_breve_R) %*% (Lambda_breve_R)
-    
-    prev_F <- pca_result$F_hat_r
+    V[mi] <- sum(residuals^2) / (ip * iT)
+    penalty[mi] <- mi * ((ip+iT*bandwidth)/(ip*iT*bandwidth))*log((ip*iT*bandwidth)/(ip+iT*bandwidth))
+    IC_values[mi] <- log(V[mi]) + penalty[mi]
   }
-  V[mi] <- sum(residuals^2) / (ip * iT)
-  penalty[mi] <- mi * ((ip+iT*bandwidth)/(ip*iT*bandwidth))*log((ip*iT*bandwidth)/(ip+iT*bandwidth))
-  IC_values[mi] <- log(V[mi]) + penalty[mi]
+  # Step 4: Determine optimal number of factors
+  optimal_m <- which.min(IC_values)
+  #message(sprintf("Optimal number of factors is %s.", optimal_R))
+  return(list(optimal_m = optimal_m, IC_values = IC_values))
 }
-# Step 4: Determine optimal number of factors
-optimal_m <- which.min(IC_values)
-#message(sprintf("Optimal number of factors is %s.", optimal_R))
-return(list(optimal_m = optimal_m, IC_values = IC_values))
-}
+
 local_pca <- function(returns, r, bandwidth, m, kernel_func, prev_F = NULL) {
   iT <- nrow(returns)
   ip <- ncol(returns)
@@ -374,4 +385,20 @@ residuals <- function(factors, loadings_list, returns) {
   return(residuals)
 }
 
-
+#' Function to compute expected returns using a simple model selection approach
+comp_expected_returns <- function(returns, horizon) {
+  exp_ret <- numeric(ncol(returns))
+  for (i in seq_len(ncol(returns))) {
+    candidate_models <- list(
+      arima(returns[, i], order = c(0,0,0)),
+      arima(returns[, i], order = c(1,0,0)),
+      arima(returns[, i], order = c(0,0,1)),
+      arima(returns[, i], order = c(1,0,1))
+    )
+    aics <- sapply(candidate_models, AIC)
+    best_model <- candidate_models[[which.min(aics)]]
+    fc <- predict(best_model, n.ahead = horizon)$pred
+    exp_ret[i] <- mean(fc)
+  }
+  return(exp_ret)
+}

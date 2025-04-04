@@ -1,5 +1,17 @@
 #############################
 # Maximum Sharpe
+#############################
+library(readxl)
+library(parallel)
+library(PortfolioMoments)
+library(corpcor)
+library(POET)
+library(glasso)
+library(PerformanceAnalytics)
+library(xts)
+library(zoo)
+source("utils.R")
+source("max_sharpe.R")
 
 # Load earlier data sets
 returns50 <- readRDS("C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/returns_used_in_analysis_50.rds")
