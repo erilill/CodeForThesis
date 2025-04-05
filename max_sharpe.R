@@ -36,7 +36,7 @@ mega_rol_pred_parallel_maxsharpe_all <- function(
                                 "local_pca", "localPCA", "two_fold_convolution_kernel", 
                                 "boundary_kernel", "epanechnikov_kernel", 
                                 "estimate_residual_cov_poet_local", "adaptive_poet_rho", 
-                                "determine_factors", "try_invert_sample_cov"), envir = environment())
+                                "determine_factors", "try_invert_sample_cov", "comp_expected_returns"), envir = environment())
   
   parallel::clusterEvalQ(cl, {
     library(PortfolioMoments)
