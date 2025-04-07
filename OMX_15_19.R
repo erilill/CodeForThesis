@@ -165,51 +165,51 @@ saveRDS(rolling_window_results_week_15_19, "C:/Users/erikl_xzy542i/Documents/Mas
 # p=150
 
 # Select 150 random stocks
-random150 <- sample(1:347, 150)
-returns150 <- as.matrix(returns[, c(random150)])
-saveRDS(returns150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/returns_used_in_analysis_150.rds")
+random150 <- sample(1:261, 150)
+returns_15_19_150 <- as.matrix(returns_15_19[, c(random150)])
+saveRDS(returns_15_19_150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/returns_15_19_150.rds")
 
 start.time <- Sys.time()
-rolling_window_results_month_2021_2024_150 <- mega_rol_pred_parallel(returns150, 252, 21, rf=risk_free, max_factors = 10)
+rolling_window_results_month_15_19_150 <- mega_rol_pred_parallel(returns_15_19_150, 252, 21, rf=risk_free, max_factors = 10)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
-rolling_window_results_month_2021_2024_150$stats
-saveRDS(rolling_window_results_month_2021_2024_150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_month_2021_2024_150.rds")
+rolling_window_results_month_15_19_150$stats
+saveRDS(rolling_window_results_month_15_19_150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_month_15_19_150.rds")
 
 
 start.time <- Sys.time()
-rolling_window_results_week_2021_2024_150 <- mega_rol_pred_parallel(returns150, 252, 5, rf=risk_free, max_factors = 10)
+rolling_window_results_week_15_19_150 <- mega_rol_pred_parallel(returns_15_19_150, 252, 5, rf=risk_free, max_factors = 10)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
-rolling_window_results_week_2021_2024_150$stats
-saveRDS(rolling_window_results_week_2021_2024_150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_2021_2024_150.rds")
+rolling_window_results_week_15_19_150$stats
+saveRDS(rolling_window_results_week_15_19_150, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_15_19_150.rds")
 
 
 ################################################################################
 # p=250
 
 # Select 250 random stocks
-random250 <- sample(1:347, 250)
-returns250 <- as.matrix(returns[, c(random250)])
-saveRDS(returns250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/returns_used_in_analysis_250.rds")
+random250 <- sample(1:261, 250)
+returns_15_19_250 <- as.matrix(returns_15_19[, c(random250)])
+saveRDS(returns_15_19_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/returns_15_19_250.rds")
 
 start.time <- Sys.time()
-rolling_window_results_month_2021_2024_250 <- mega_rol_pred_parallel(returns250, 252, 21, rf=risk_free, max_factors = 10)
+rolling_window_results_month_15_19_250 <- mega_rol_pred_parallel(returns_15_19_250, 252, 21, rf=risk_free, max_factors = 10)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
-rolling_window_results_month_2021_2024_250$stats
-saveRDS(rolling_window_results_week_2021_2024_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_2021_2024_250.rds")
+rolling_window_results_month_15_19_250$stats
+saveRDS(rolling_window_results_week_15_19_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_15_19_250.rds")
 
 
 start.time <- Sys.time()
-rolling_window_results_week_2021_2024_250 <- mega_rol_pred_parallel(returns250, 252, 5, rf=risk_free, max_factors = 10)
+rolling_window_results_week_15_19_250 <- mega_rol_pred_parallel(returns_15_19_250, 252, 5, rf=risk_free, max_factors = 10)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
-rolling_window_results_week_2021_2024_250$stats
-saveRDS(rolling_window_results_week_2021_2024_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_2021_2024_250.rds")
+rolling_window_results_week_15_19_250$stats
+saveRDS(rolling_window_results_week_15_19_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_15_19_250.rds")
 
 
