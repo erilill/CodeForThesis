@@ -65,56 +65,71 @@ generate_DGP3 <- function(p, T, F){
 # DGP 4 Single structural brake
 generate_DGP4 <- function(p, T, F, b = 2) {
   X <- matrix(NA, nrow=T, ncol=p)
-  for (t in 1:T){
-    Lambda <- matrix(rnorm(p * 2, mean = 1, sd = 1), ncol = 2)
-    if ((T/2+1) <= t & t <= T){
-      Lambda <- Lambda + b
+  Lambda1 <- matrix(rnorm(p * 2, mean=1, sd=1), ncol = 2)
+  Lambda2 <- Lambda1 + b
+  
+  for (t in 1:T) {
+    if (t <= T/2) {
+      Lambda <- Lambda1
+    } else {
+      Lambda <- Lambda2
     }
     sigma_i <- runif(p, 0.5, 1.5)
-    e <- rnorm(p, mean=0, sd=1)*sigma_i
-    X[t,] <- t(Lambda %*% F[t,] + e)
+    e <- rnorm(p) * sigma_i
+    
+    X[t, ] <- t(Lambda %*% F[t, ] + e)
   }
   return(X)
 }
-
 
 
 
 # DGP 5 Multiple Structural Breaks
 generate_DGP5 <- function(p, T, F, b = 2) {
-  X <- matrix(NA, nrow=T, ncol=p)
-  for (t in 1:T) {
-    Lambda1 <- matrix(rnorm(p , mean = 1, sd = 1), ncol = 1)
-    Lambda2 <- matrix(rnorm(p , mean = 0, sd = 1), ncol = 1)
-    Lambda <- cbind(Lambda1, Lambda2)
-    
-    if (0.6 * T < t & t <= 0.8 * T) {
-      Lambda[,1] <- Lambda[,1] + 0.5 * b
-    } else if (0.2 * T < t & t <= 0.4 * T) {
-      Lambda[,1] <- Lambda[,1] - 0.5 * b
+  Lambda_base <- cbind(
+    rnorm(p, mean = 1, sd = 1),  # Column 1
+    rnorm(p, mean = 0, sd = 1)   # Column 2
+  )
+  Lambda_plus  <- Lambda_base; Lambda_plus[,1]  <- Lambda_plus[,1]  + 0.5 * b
+  Lambda_minus <- Lambda_base; Lambda_minus[,1] <- Lambda_minus[,1] - 0.5 * b
+  
+  X <- matrix(NA, nrow = T, ncol = p)
+  for (t in seq_len(T)) {
+    # By default: no shift
+    Lambda_t <- Lambda_base
+    if (t > 0.2 * T && t <= 0.4 * T) {
+      Lambda_t <- Lambda_minus
     }
-    e <- rnorm(p, mean=0, sd=1)
-    X[t,] <- t(Lambda %*% F[t,] + e)
+    else if (t > 0.6 * T && t <= 0.8 * T) {
+      Lambda_t <- Lambda_plus
+    }
+    e <- rnorm(p, mean = 0, sd = 1)
+    X[t, ] <- t(Lambda_t %*% F[t, ] + e)
   }
   return(X)
 }
 
+
 # DGP 6 Smooth Structural Changes I
 generate_DGP6 <- function(p, T, F, b = 2) {
-  X <- matrix(NA, nrow=T, ncol=p)
-  
-  G <- function(x, a, b) (1 + exp(-a * (x - b)))^-1  # Smooth transition function
-  
-  for (t in 1:T) {
-    Lambda <- matrix(rnorm(p * 2, mean = 0, sd = 1), ncol = 2)
-    for (i in 1:p) {
-      Lambda[i, 2] <- b*G(10 * t / T, 2, 5 * i / p + 2)
-    }
-    e <- rnorm(p, mean=0, sd=1)
-    X[t,] <- t(Lambda %*% F[t,] + e)
+  X <- matrix(NA, nrow = T, ncol = p)
+  Lambda1 <- rnorm(p, mean = 0, sd = 1)
+  G <- function(x, a, b) {
+    1 / (1 + exp(-a * (x - b)))
   }
+  for (t in seq_len(T)) {
+    lam2 <- numeric(p)
+    for (i in seq_len(p)) {
+      lam2[i] <- b * G(10 * t / T, 2, 5 * i / p + 2)
+    }
+    Lambda_t <- cbind(Lambda1, lam2)
+    e <- rnorm(p, mean = 0, sd = 1)
+    X[t, ] <- t(Lambda_t %*% F[t, ] + e)
+  }
+  
   return(X)
 }
+
 
 ################################################################################
 # run simulation for hypothesis test:
@@ -311,7 +326,7 @@ start.time <- Sys.time()
 # Each worker generates synthetic data and runs the hypothesis test.
 results_list_dgp4 <- parLapply(cl, 1:R, function(r) {
   # Generate synthetic data for replication r
-  X_sim <- generate_DGP4(p, T, F_t, b=4)
+  X_sim <- generate_DGP4(p, T, F_t, b=2)
   
   # Run the hypothesis test on the synthetic data
   test_result <- hyptest1(X_sim, m, B)
@@ -364,7 +379,7 @@ start.time <- Sys.time()
 # Each worker generates synthetic data and runs the hypothesis test.
 results_list_dgp5 <- parLapply(cl, 1:R, function(r) {
   # Generate synthetic data for replication r
-  X_sim <- generate_DGP5(p, T, F_t, b=4)
+  X_sim <- generate_DGP5(p, T, F_t, b=2)
   
   # Run the hypothesis test on the synthetic data
   test_result <- hyptest1(X_sim, m, B)

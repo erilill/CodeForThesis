@@ -201,7 +201,7 @@ end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
 rolling_window_results_month_15_19_250$stats
-saveRDS(rolling_window_results_week_15_19_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_week_15_19_250.rds")
+saveRDS(rolling_window_results_month_15_19_250, "C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/rolling_window_results_month_15_19_250.rds")
 
 
 start.time <- Sys.time()
