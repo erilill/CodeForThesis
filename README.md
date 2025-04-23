@@ -18,7 +18,7 @@ was used.
 
 In 'SimulationStudy.R' you find the complete simulation study.
 
-RDS-files with results can be found in the results-folder, simply run 'readRDS("file")'
+RDS-files with results can be found in the results-folder, simply run 'readRDS("results/which folder/file")'
 in order to load the results.
 
 For any questions, please contact me on my student email erik.lillrank.9607@student.uu.se,
