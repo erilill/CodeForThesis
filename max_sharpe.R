@@ -23,15 +23,32 @@ mega_rol_pred_parallel_maxsharpe_all <- function(
     rf <- rf[(initial_window + 1):T]
   }
   
+  m_local_list <- vector("list", RT)
+  last_m <- determine_factors(returns[1:initial_window, ], max_factors, silverman(returns[1:initial_window,]))$optimal_m
+  
   # Initially estimate factor count
-  m <- determine_factors(
-    returns[1:initial_window, ], max_factors,
-    silverman(returns[1:initial_window, ])
-  )$optimal_m
+  m_update_flags <- rep(FALSE, RT)
+  days_since_last <- 0
+  for (i in seq_len(RT)) {
+    if (i == 1 || days_since_last >= 252) {
+      m_update_flags[i] <- TRUE
+      days_since_last <- 0
+    } else {
+      days_since_last <- days_since_last + rebal_period
+    }
+  }
+  
+  for (i in seq_len(RT)) {
+    if (m_update_flags[i]) {
+      current_index <- rebalance_dates[i]
+      last_m <- determine_factors(returns[1:current_index, ], max_factors, silverman(returns[1:current_index,]))$optimal_m
+    }
+    m_local_list[[i]] <- last_m
+  }
   
   # Start cluster
   cl <- parallel::makeCluster(num_cores)
-  clusterExport(cl, varlist = c("returns", "rebalance_dates", "max_factors", "m", "rebal_period", "p", "rf", 
+  clusterExport(cl, varlist = c("returns", "rebalance_dates", "max_factors", "m_local_list", "rebal_period", "p", "rf", 
                                 "residuals", "sqrt_matrix", "compute_sigma_0", "silverman", 
                                 "local_pca", "localPCA", "two_fold_convolution_kernel", 
                                 "boundary_kernel", "epanechnikov_kernel", 
@@ -51,20 +68,11 @@ mega_rol_pred_parallel_maxsharpe_all <- function(
   results <- parallel::parLapply(cl, seq_len(RT), function(l) {
     current_index <- rebalance_dates[l]
     
-    # Possibly re-estimate # factors every 252 days
-    if ((current_index - initial_window) %% 252 == 0) {
-      m_local <- determine_factors(
-        returns[1:current_index, ], max_factors,
-        silverman(returns[1:current_index, ])
-      )$optimal_m
-    } else {
-      m_local <- m
-    }
-    
     # Subset data for estimation
     reb_t <- rebalance_dates[l]
     est_data <- returns[1:(reb_t - 1), , drop = FALSE]
     hold_end <- min(reb_t + rebal_period - 1, T)
+    m_local <- m_local_list[l]
     
     # Forecast mu_hat via ARIMA
     mu_hat <- comp_expected_returns(est_data, rebal_period)

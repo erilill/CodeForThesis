@@ -68,7 +68,7 @@ mega_rol_pred_parallel <- function(returns,
   
   # Start parallel cluster
   cl <- makeCluster(num_cores)
-  clusterExport(cl, varlist = c("returns", "m_local_list", "rebalance_dates", "max_factors", "rebal_period", "p", "rf", 
+  clusterExport(cl, varlist = c("returns", "m_local_list", "rebalance_dates", "max_factors", "rebal_period", "p", "T", "rf", 
                                 "residuals", "sqrt_matrix", "compute_sigma_0", "silverman", 
                                 "local_pca", "localPCA", "two_fold_convolution_kernel", 
                                 "boundary_kernel", "epanechnikov_kernel", 
@@ -279,5 +279,4 @@ mega_rol_pred_parallel <- function(returns,
     stats = methods_stats
   )
 }
-
 

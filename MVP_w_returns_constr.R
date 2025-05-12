@@ -28,13 +28,31 @@ mega_rol_pred_parallel_w_constr <- function(returns,
     rf <- rf[(initial_window + 1):T]
   }
   
-  # Initially estimate m using the initial window
-  m <- determine_factors(returns[1:initial_window, ], max_factors, silverman(returns[1:initial_window,]))$optimal_m
-  last_m_update <- initial_window  # tracker: last day at which m was updated
+  m_local_list <- vector("list", RT)
+  last_m <- determine_factors(returns[1:initial_window, ], max_factors, silverman(returns[1:initial_window,]))$optimal_m
+  
+  m_update_flags <- rep(FALSE, RT)
+  days_since_last <- 0
+  for (i in seq_len(RT)) {
+    if (i == 1 || days_since_last >= 252) {
+      m_update_flags[i] <- TRUE
+      days_since_last <- 0
+    } else {
+      days_since_last <- days_since_last + rebal_period
+    }
+  }
+  
+  for (i in seq_len(RT)) {
+    if (m_update_flags[i]) {
+      current_index <- rebalance_dates[i]
+      last_m <- determine_factors(returns[1:current_index, ], max_factors, silverman(returns[1:current_index,]))$optimal_m
+    }
+    m_local_list[[i]] <- last_m
+  }
   
   # Start parallel cluster
   cl <- makeCluster(num_cores)
-  clusterExport(cl, varlist = c("returns", "rebalance_dates", "max_factors", "m", "rebal_period", "p", "rf", 
+  clusterExport(cl, varlist = c("returns", "rebalance_dates", "max_factors", "m_local_list", "rebal_period", "p", "rf", 
                                 "residuals", "sqrt_matrix", "compute_sigma_0", "silverman", 
                                 "local_pca", "localPCA", "two_fold_convolution_kernel", 
                                 "boundary_kernel", "epanechnikov_kernel", 
@@ -51,21 +69,9 @@ mega_rol_pred_parallel_w_constr <- function(returns,
   
   results <- parLapply(cl, seq_len(RT),
                        function(l, rebalance_dates, rebal_period, min_returns, p, rf, returns, max_factors, initial_window) {
-                         # Use the global m value as passed by clusterExport
-                         # Note: We'll update m within this function if needed.
-                         current_index <- rebalance_dates[l]
-                         # Check if more than 252 days have passed since last m update:
-                         # We need a mechanism to update m based on current index.
-                         # Here, we use the fact that the cluster function receives a copy of the global m,
-                         # but we can update it locally:
-                         if ((current_index - initial_window) %% 252 == 0) {
-                           m_local <- determine_factors(returns[1:current_index, ], max_factors, silverman(returns[1:current_index,]))$optimal_m
-                         } else {
-                           m_local <- m
-                         }
-                         
                          reb_t <- rebalance_dates[l]
                          est_data <- returns[1:(reb_t - 1), , drop = FALSE]
+                         m_local <- m_local_list[l]
                          
                          # For local PCA, re-estimate bandwidth using estimation data
                          bandwidth <- silverman(est_data)
