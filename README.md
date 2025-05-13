@@ -2,14 +2,11 @@
 # Overview
 This repository includes all code which was used to conduct the analysis in my 
 thesis. The 'TVMVP' package has all necessary functions, except the rolling 
-window which compares different covariance estimation methods. As this was written
-at the same time as the package, it was easier to save the necessary functions as
-scripts, hence, it is not necessary to install 'TVMVP' to run this code.
+window which compares different covariance estimation methods.
 
-You find the scripts for the package-function in 'utils.R', in ''mega_rol_pred.R'
-you find the script for the rolling window evaluation of the minimum variance portfolios,
-and similarly for w/ returns constraint in 'MVP_w_returns_constr.R' and maximum
-Sharpe ratio portfolios in 'max_sharpe.R'.
+In 'mega_rol_pred.R' you find the script for the rolling window evaluation of 
+the minimum variance portfolios, and similarly for w/ returns constraint in 
+'MVP_w_returns_constr.R', and maximum Sharpe ratio portfolios in 'max_sharpe.R'.
 
 The analysis can be found in 'OMX.R' (MVP), 'OMX_15_19.R' (MVP), 'SP500.R' (MVP),
 and 'Empirical_max_SR.R' (Max SR portfolio). Some which are included in the paper,

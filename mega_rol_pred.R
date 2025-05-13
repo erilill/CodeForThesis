@@ -68,22 +68,19 @@ mega_rol_pred_parallel <- function(returns,
   
   # Start parallel cluster
   cl <- makeCluster(num_cores)
-  clusterExport(cl, varlist = c("returns", "m_local_list", "rebalance_dates", "max_factors", "rebal_period", "p", "T", "rf", 
-                                "residuals", "sqrt_matrix", "compute_sigma_0", "silverman", 
-                                "local_pca", "localPCA", "two_fold_convolution_kernel", 
-                                "boundary_kernel", "epanechnikov_kernel", 
-                                "estimate_residual_cov_poet_local", "adaptive_poet_rho", 
-                                "determine_factors", "try_invert_sample_cov"), envir = environment())
+  clusterExport(cl, varlist = c("returns", "m_local_list", "rebalance_dates", "rebal_period", "p", "T", "rf", 
+                                "initial_window", "try_invert_sample_cov"), envir = environment())
   clusterEvalQ(cl, {
     library(PortfolioMoments)
     library(corpcor)
     library(POET)
     library(glasso)
     library(PerformanceAnalytics)
+    library(TVMVP)
   })
   
   results <- parLapply(cl, seq_len(RT),
-                       function(l, rebalance_dates, rebal_period, p, rf, returns, max_factors, initial_window) {
+                       function(l, rebalance_dates, rebal_period, p, rf, returns, initial_window) {
                          
                          m_local <- m_local_list[[l]]
                          
@@ -93,16 +90,9 @@ mega_rol_pred_parallel <- function(returns,
                          # For local PCA, re-estimate bandwidth using estimation data
                          bandwidth <- silverman(est_data)
                          
-                         # Local PCA with the local m estimate
-                         local_res <- localPCA(est_data, bandwidth, m_local, epanechnikov_kernel)
-                         
                          # Compute covariance using the local PCA results
-                         Sigma_hat <- estimate_residual_cov_poet_local(localPCA_results = local_res,
-                                                                       returns = est_data,
-                                                                       M0 = 10, 
-                                                                       rho_grid = seq(0.005, 2, length.out = 30),
-                                                                       floor_value = 1e-12,
-                                                                       epsilon2 = 1e-6)$total_cov
+                         Sigma_hat <- time_varying_cov(est_data, m_local, bandwidth)
+                         
                          # Compute GMVP weights (and other methods)
                          inv_cov <- chol2inv(chol(Sigma_hat))
                          ones <- rep(1, p)
@@ -159,7 +149,7 @@ mega_rol_pred_parallel <- function(returns,
                          )
                        },
                        rebalance_dates = rebalance_dates, rebal_period = rebal_period, p = p, rf = rf,
-                       returns = returns, max_factors = max_factors, initial_window = initial_window
+                       returns = returns, initial_window = initial_window
   )
   
   stopCluster(cl)  # Stop the parallel cluster
@@ -276,6 +266,7 @@ mega_rol_pred_parallel <- function(returns,
                      POET = stats_POET$drawdowns,
                      glasso = stats_glasso$drawdowns,
                      tvmvp = stats_tvmvp$drawdowns),
+    num_factors = m_local_list,
     stats = methods_stats
   )
 }

@@ -10,7 +10,8 @@ library(glasso)
 library(PerformanceAnalytics)
 library(xts)
 library(zoo)
-source("utils.R")
+library(TVMVP)
+library(forecast)
 source("max_sharpe.R")
 
 # Load earlier data sets
@@ -24,7 +25,7 @@ returns250 <- readRDS("C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data
 # p=50
 
 start.time <- Sys.time()
-rolling_window_results_month_2021_2024_sr <- mega_rol_pred_parallel_maxsharpe_all(returns50, 252, 21, rf=risk_free, max_factors = 10)
+rolling_window_results_month_2021_2024_sr <- mega_rol_pred_parallel_w_constr(returns50, 252, 21, rf=risk_free, max_factors = 10)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)

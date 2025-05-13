@@ -9,7 +9,7 @@ library(glasso)
 library(PerformanceAnalytics)
 library(xts)
 library(zoo)
-source("utils.R")
+library(TVMVP)
 source("mega_rol_pred.R")
 sp500 <- sp500_2021_2024 <- read_excel("C:/Users/erikl_xzy542i/Documents/Master_local/Thesis/Data/sp500_2021_2024.xlsx", 
                                        col_types = c("date", "numeric", "numeric", 

@@ -53,39 +53,27 @@ mega_rol_pred_parallel_w_constr <- function(returns,
   # Start parallel cluster
   cl <- makeCluster(num_cores)
   clusterExport(cl, varlist = c("returns", "rebalance_dates", "max_factors", "m_local_list", "rebal_period", "p", "rf", 
-                                "residuals", "sqrt_matrix", "compute_sigma_0", "silverman", 
-                                "local_pca", "localPCA", "two_fold_convolution_kernel", 
-                                "boundary_kernel", "epanechnikov_kernel", 
-                                "estimate_residual_cov_poet_local", "adaptive_poet_rho", 
-                                "determine_factors", "try_invert_sample_cov", 
-                                "comp_expected_returns", "min_returns", "min_returns_weights"), envir = environment())
+                                "initial_window", "min_returns", "min_returns_weights", "comp_expected_returns", "try_invert_sample_cov"), envir = environment())
   clusterEvalQ(cl, {
     library(PortfolioMoments)
     library(corpcor)
     library(POET)
     library(glasso)
     library(PerformanceAnalytics)
+    library(TVMVP)
   })
   
   results <- parLapply(cl, seq_len(RT),
                        function(l, rebalance_dates, rebal_period, min_returns, p, rf, returns, max_factors, initial_window) {
                          reb_t <- rebalance_dates[l]
                          est_data <- returns[1:(reb_t - 1), , drop = FALSE]
-                         m_local <- m_local_list[l]
+                         m_local <- m_local_list[[l]]
                          
                          # For local PCA, re-estimate bandwidth using estimation data
                          bandwidth <- silverman(est_data)
                          
-                         # Local PCA with the local m estimate
-                         local_res <- localPCA(est_data, bandwidth, m_local, epanechnikov_kernel)
-                         
                          # Compute covariance using the local PCA results
-                         Sigma_hat <- estimate_residual_cov_poet_local(localPCA_results = local_res,
-                                                                       returns = est_data,
-                                                                       M0 = 10, 
-                                                                       rho_grid = seq(0.005, 2, length.out = 30),
-                                                                       floor_value = 1e-12,
-                                                                       epsilon2 = 1e-6)$total_cov
+                         Sigma_hat <- time_varying_cov(est_data, m_local, bandwidth)
                          
                          # Forecast mu_hat via ARIMA
                          mu_hat <- comp_expected_returns(est_data, rebal_period)
@@ -178,7 +166,7 @@ mega_rol_pred_parallel_w_constr <- function(returns,
                          )
                        },
                        rebalance_dates = rebalance_dates, rebal_period = rebal_period, p = p, rf = rf,
-                       returns = returns, max_factors = max_factors, initial_window = initial_window, min_returns = min_returns
+                       returns = returns, initial_window = initial_window, min_returns = min_returns
   )
   
   stopCluster(cl)  # Stop the parallel cluster
@@ -295,6 +283,49 @@ mega_rol_pred_parallel_w_constr <- function(returns,
                      POET = stats_POET$drawdowns,
                      glasso = stats_glasso$drawdowns,
                      tvmvp = stats_tvmvp$drawdowns),
+    num_factors = m_local_list,
     stats = methods_stats
   )
+}
+
+comp_expected_returns <- function(returns, horizon) {
+  exp_ret <- numeric(ncol(returns))
+  
+  for (i in seq_len(ncol(returns))) {
+    candidate_models <- list()
+    aics <- numeric()
+    
+    for (order in list(c(0,0,0), c(1,0,0), c(0,0,1), c(1,0,1))) {
+      model <- tryCatch(
+        arima(returns[, i], order = order),
+        error = function(e) NULL
+      )
+      candidate_models <- c(candidate_models, list(model))
+      aics <- c(aics, if (!is.null(model)) AIC(model) else Inf)
+    }
+    
+    # If all models failed, fallback to mean return
+    if (all(is.infinite(aics))) {
+      exp_ret[i] <- mean(returns[, i])
+    } else {
+      best_model <- candidate_models[[which.min(aics)]]
+      fc <- predict(best_model, n.ahead = horizon)$pred
+      exp_ret[i] <- mean(fc)
+    }
+  }
+  
+  return(exp_ret)
+}
+try_invert_sample_cov <- function(Sigma, ridge = 1e-5) {
+  # Attempt a direct inversion
+  inv_Sigma <- try(solve(Sigma), silent = TRUE)
+  
+  # Check if it failed
+  if (inherits(inv_Sigma, "try-error")) {
+    cat("Matrix is nearly singular; applying ridge =", ridge, "\n")
+    Sigma_reg <- Sigma + ridge * diag(ncol(Sigma))
+    inv_Sigma <- solve(Sigma_reg)
+  }
+  
+  return(inv_Sigma)
 }
